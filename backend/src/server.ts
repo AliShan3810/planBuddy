@@ -32,31 +32,43 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 // Helper function to validate if goal is realistic for time horizon using AI
-const validateGoalForTimeHorizon = async (goal: string, timeHorizon: string, openai: OpenAI | null): Promise<{ isValid: boolean; message?: string }> => {
+const validateGoalForTimeHorizon = async (
+  goal: string,
+  timeHorizon: string,
+  openai: OpenAI | null
+): Promise<{ isValid: boolean; message?: string }> => {
   // If no OpenAI API key, use simple fallback validation
   if (!openai) {
     const goalLower = goal.toLowerCase();
-    
+
     // Simple fallback for common unrealistic goals
-    const unrealisticKeywords = ['learn programming', 'become expert', 'master', 'get degree', 'build app', 'create website'];
-    
+    const unrealisticKeywords = [
+      "learn programming",
+      "become expert",
+      "master",
+      "get degree",
+      "build app",
+      "create website",
+    ];
+
     for (const keyword of unrealisticKeywords) {
       if (goalLower.includes(keyword)) {
         return {
           isValid: false,
-          message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal.`
+          message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal.`,
         };
       }
     }
-    
+
     return { isValid: true };
   }
 
   try {
-    const timeContext = timeHorizon === "Today" 
-      ? "within the next 24 hours (one day)" 
-      : "over the next 7 days (one week)";
-    
+    const timeContext =
+      timeHorizon === "Today"
+        ? "within the next 24 hours (one day)"
+        : "over the next 7 days (one week)";
+
     const validationPrompt = `You are a productivity expert. Analyze if the following goal is realistically achievable ${timeContext}.
 
 GOAL: "${goal}"
@@ -84,36 +96,36 @@ Examples of realistic goals for "This Week": learning basics of a topic, plannin
       messages: [
         {
           role: "system",
-          content: "You are a productivity expert who validates if goals are realistic for given time periods. Always respond with valid JSON only."
+          content:
+            "You are a productivity expert who validates if goals are realistic for given time periods. Always respond with valid JSON only.",
         },
         {
           role: "user",
-          content: validationPrompt
-        }
+          content: validationPrompt,
+        },
       ],
       temperature: 0.3,
       max_tokens: 200,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     const content = completion?.choices[0]?.message?.content;
     if (!content) {
-      throw new Error('No response from validation API');
+      throw new Error("No response from validation API");
     }
 
     const validationResult = JSON.parse(content);
-    
+
     if (!validationResult.isRealistic) {
       return {
         isValid: false,
-        message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal or change the time horizon.`
+        message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal.`,
       };
     }
-    
+
     return { isValid: true };
-    
   } catch (error) {
-    console.error('AI validation error:', error);
+    console.error("AI validation error:", error);
     // Fallback to allowing the goal if AI validation fails
     return { isValid: true };
   }
@@ -122,8 +134,10 @@ Examples of realistic goals for "This Week": learning basics of a topic, plannin
 // Helper function to create fallback tasks
 const createFallbackTasks = (goal: string, timeHorizon: string): Task[] => {
   const isToday = timeHorizon === "Today";
-  const days = isToday ? ["Today"] : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-  
+  const days = isToday
+    ? ["Today"]
+    : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
   return [
     {
       id: `task-${Date.now()}-1`,
@@ -193,7 +207,11 @@ app.post("/plan", async (req: Request, res: Response) => {
     }
 
     // Validate if goal is realistic for the time horizon using AI
-    const validation = await validateGoalForTimeHorizon(goal, timeHorizon, openai);
+    const validation = await validateGoalForTimeHorizon(
+      goal,
+      timeHorizon,
+      openai
+    );
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -222,13 +240,15 @@ app.post("/plan", async (req: Request, res: Response) => {
     // Helper function to create dynamic prompt
     const createDynamicPrompt = (goal: string, timeHorizon: string) => {
       const isToday = timeHorizon === "Today";
-      const timeContext = isToday 
-        ? "within the next 24 hours" 
+      const timeContext = isToday
+        ? "within the next 24 hours"
         : "over the next 7 days";
-      
-      const urgencyLevel = isToday ? "urgent and immediate" : "well-planned and achievable";
+
+      const urgencyLevel = isToday
+        ? "urgent and immediate"
+        : "well-planned and achievable";
       const taskCount = isToday ? "3-4" : "5-6";
-      
+
       return `You are an expert productivity coach and project manager. Create a detailed, actionable plan to help someone achieve their goal.
 
 GOAL: "${goal}"
@@ -351,7 +371,8 @@ Make this plan practical and immediately actionable. Focus on concrete steps rat
           messages: [
             {
               role: "system",
-              content: "You are an expert productivity coach. Always respond with valid JSON only, no additional text or explanations."
+              content:
+                "You are an expert productivity coach. Always respond with valid JSON only, no additional text or explanations.",
             },
             {
               role: "user",
@@ -365,15 +386,16 @@ Make this plan practical and immediately actionable. Focus on concrete steps rat
         break; // Success, exit retry loop
       } catch (apiError) {
         attempts++;
-        const errorMessage = apiError instanceof Error ? apiError.message : 'Unknown API error';
+        const errorMessage =
+          apiError instanceof Error ? apiError.message : "Unknown API error";
         console.warn(`⚠️ OpenAI API attempt ${attempts} failed:`, errorMessage);
-        
+
         if (attempts >= maxAttempts) {
           throw apiError; // Re-throw if all attempts failed
         }
-        
+
         // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
 
@@ -383,38 +405,51 @@ Make this plan practical and immediately actionable. Focus on concrete steps rat
 
     try {
       // Attempt to parse JSON
-      const parsedContent = JSON.parse(content || '{}');
-      
+      const parsedContent = JSON.parse(content || "{}");
+
       // Validate the structure
-      if (!parsedContent.title || !parsedContent.tasks || !Array.isArray(parsedContent.tasks)) {
-        throw new Error('Invalid plan structure received from AI');
+      if (
+        !parsedContent.title ||
+        !parsedContent.tasks ||
+        !Array.isArray(parsedContent.tasks)
+      ) {
+        throw new Error("Invalid plan structure received from AI");
       }
 
       // Validate each task has required fields
-      const validTasks = parsedContent.tasks.filter((task: any) => 
-        task.id && task.title && task.dueDate && task.priority && task.emoji
+      const validTasks = parsedContent.tasks.filter(
+        (task: any) =>
+          task.id && task.title && task.dueDate && task.priority && task.emoji
       );
 
       if (validTasks.length === 0) {
-        throw new Error('No valid tasks found in AI response');
+        throw new Error("No valid tasks found in AI response");
       }
 
       planData = {
         title: parsedContent.title,
-        description: parsedContent.description || `A structured plan to achieve: ${goal}`,
+        description:
+          parsedContent.description || `A structured plan to achieve: ${goal}`,
         tasks: validTasks,
         timeHorizon: parsedContent.timeHorizon || timeHorizon,
       };
 
-      console.log(`✅ Successfully parsed AI response with ${validTasks.length} tasks`);
-
+      console.log(
+        `✅ Successfully parsed AI response with ${validTasks.length} tasks`
+      );
     } catch (parseError) {
-      const errorMessage = parseError instanceof Error ? parseError.message : 'Unknown parsing error';
-      console.warn('⚠️ JSON parsing failed, using fallback plan:', errorMessage);
-      
+      const errorMessage =
+        parseError instanceof Error
+          ? parseError.message
+          : "Unknown parsing error";
+      console.warn(
+        "⚠️ JSON parsing failed, using fallback plan:",
+        errorMessage
+      );
+
       // Create a robust fallback plan
       const fallbackTasks: Task[] = createFallbackTasks(goal, timeHorizon);
-      
+
       planData = {
         title: goal,
         description: `A structured plan to achieve: ${goal}`,
@@ -433,13 +468,14 @@ Make this plan practical and immediately actionable. Focus on concrete steps rat
 
     // Create fallback plan using the helper function
     const fallbackTasks = createFallbackTasks(
-      req.body.goal || "Your Goal", 
+      req.body.goal || "Your Goal",
       req.body.timeHorizon || "Today"
     );
 
     const fallbackPlan: StructuredPlan = {
       title: req.body.goal || "Your Goal",
-      description: "A structured plan to achieve your goal (generated as fallback)",
+      description:
+        "A structured plan to achieve your goal (generated as fallback)",
       tasks: fallbackTasks,
       timeHorizon: req.body.timeHorizon || "Today",
     };
@@ -447,7 +483,8 @@ Make this plan practical and immediately actionable. Focus on concrete steps rat
     res.json({
       success: true,
       data: fallbackPlan,
-      message: "Plan generated (fallback due to API error - this is normal and expected occasionally)",
+      message:
+        "Plan generated (fallback due to API error - this is normal and expected occasionally)",
     } as ApiResponse<StructuredPlan>);
   }
 });
