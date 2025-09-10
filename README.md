@@ -93,6 +93,66 @@ cd backend && npm run dev
 cd frontend && npx expo start
 ```
 
+## Testing
+
+### Frontend Testing with Jest
+
+The project includes a comprehensive Jest testing setup for the utility functions.
+
+#### Running Tests
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Run all tests
+npm test
+
+# Run tests in watch mode (re-runs on file changes)
+npm test:watch
+
+# Run tests with verbose output
+npm test -- --verbose
+```
+
+#### Test Coverage
+- **25 comprehensive tests** covering all utility functions
+- **Task filtering** - All priority filters and edge cases
+- **Task sorting** - Priority, date, completion, and combined sorting
+- **Statistics calculation** - Completion metrics and edge cases
+- **Color mapping** - Priority color utilities
+- **Edge cases** - Empty arrays, invalid inputs, boundary conditions
+
+#### Test Structure
+```
+src/utils/
+├── taskUtils.ts          # Utility functions
+├── taskUtils.test.ts     # Comprehensive test suite
+└── setupTests.ts         # Jest configuration
+```
+
+#### Example Test
+```typescript
+test('should filter tasks by High priority', () => {
+  const filteredTasks = filterTasksByPriority(mockTasks, 'High');
+  
+  expect(filteredTasks).toHaveLength(2);
+  expect(filteredTasks.every(task => task.priority === 'High')).toBe(true);
+});
+```
+
+#### Testing with Different Data
+You can easily test with different datasets by:
+1. **Modifying mock data** in test files
+2. **Creating new test files** for specific scenarios
+3. **Using dynamic data generation** in tests
+4. **Testing with real app data** copied from your application
+
+#### Jest Configuration
+- **TypeScript support** with ts-jest preset
+- **Node.js environment** for utility function testing
+- **Automatic test discovery** for `.test.ts` and `.spec.ts` files
+- **Clean test output** without coverage overhead
+
 ## API Structure
 
 ### Request
@@ -132,6 +192,7 @@ POST /plan
 - **Frontend**: Expo, React Native, TypeScript, Redux Toolkit, Redux Persist
 - **Backend**: Node.js, Express, TypeScript, OpenAI API
 - **Storage**: AsyncStorage for local persistence
+- **Testing**: Jest with TypeScript support
 
 ## Deviations from Original Spec
 
@@ -178,6 +239,24 @@ POST /plan
 - **Current**: Complete theme system with light/dark modes
 - **Why**: User requested modern theme support for better UX
 - **Time Tradeoff**: +2 hours for comprehensive theming
+
+#### 8. **Performance Optimizations**
+- **Original**: Basic map() for task rendering
+- **Current**: FlatList implementation with ID-based task management
+- **Why**: Better performance for large task lists and more reliable task toggling
+- **Time Tradeoff**: +1 hour for performance improvements
+
+#### 9. **Animated Congratulations Modal**
+- **Original**: No completion celebration
+- **Current**: Animated modal with fade effects when all tasks are completed
+- **Why**: User requested celebration for task completion with one-time display
+- **Time Tradeoff**: +1.5 hours for enhanced user experience
+
+#### 10. **Comprehensive Testing Suite**
+- **Original**: No testing framework
+- **Current**: Jest testing with 25 comprehensive tests
+- **Why**: User requested testing for task filtering/sorting functionality
+- **Time Tradeoff**: +2 hours for robust testing infrastructure
 
 ## State Management & Persistence
 
@@ -266,3 +345,6 @@ This is a straightforward implementation focused on the core functionality:
 - Task completion tracking
 - Robust error handling
 - Light/Dark theme support
+- Performance-optimized FlatList rendering
+- Animated congratulations modal
+- Comprehensive Jest testing suite

@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { updateTaskStatus, clearCurrentPlan } from '../store/planSlice';
 import { RootState } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
+import { filterAndSortTasks, getTaskStatistics, getPriorityColor, FilterPriority } from '../utils/taskUtils';
 
 export default function PlanScreen({ navigation }: any) {
   const [filterPriority, setFilterPriority] = useState<'All' | 'High' | 'Medium' | 'Low'>('All');
@@ -132,25 +133,19 @@ export default function PlanScreen({ navigation }: any) {
     );
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High': return '#ef4444';
-      case 'Medium': return '#f59e0b';
-      case 'Low': return '#10b981';
-      default: return '#6b7280';
-    }
+  const filteredTasks = currentPlan ? 
+    filterAndSortTasks(currentPlan.tasks, filterPriority as FilterPriority) : [];
+
+  const taskStats = currentPlan ? getTaskStatistics(currentPlan.tasks) : { 
+    completedTasks: 0, 
+    totalTasks: 0, 
+    completionPercentage: 0,
+    incompleteTasks: 0
   };
-
-  const filteredTasks = currentPlan?.tasks.filter(task => 
-    filterPriority === 'All' || task.priority === filterPriority
-  ) || [];
-
-  const completedTasks = currentPlan?.tasks.filter(task => task.completed).length || 0;
-  const totalTasks = currentPlan?.tasks.length || 0;
 
   // Check if all tasks are completed and show congratulations
   useEffect(() => {
-    if (totalTasks > 0 && completedTasks === totalTasks && currentPlan) {
+    if (taskStats.totalTasks > 0 && taskStats.completedTasks === taskStats.totalTasks && currentPlan) {
       // Show congratulations if not already shown for this completion
       if (congratulationsShown !== currentPlan.id) {
         setShowCongratulations(true);
@@ -163,13 +158,13 @@ export default function PlanScreen({ navigation }: any) {
           useNativeDriver: true,
         }).start();
       }
-    } else if (totalTasks > 0 && completedTasks < totalTasks && currentPlan && congratulationsShown === currentPlan.id) {
+    } else if (taskStats.totalTasks > 0 && taskStats.completedTasks < taskStats.totalTasks && currentPlan && congratulationsShown === currentPlan.id) {
       // Reset congratulations state when tasks are unchecked
       setCongratulationsShown(null);
       setShowCongratulations(false);
       fadeAnim.setValue(0);
     }
-  }, [completedTasks, totalTasks, currentPlan, congratulationsShown, fadeAnim]);
+  }, [taskStats.completedTasks, taskStats.totalTasks, currentPlan, congratulationsShown, fadeAnim]);
 
   // Reset congratulations state when plan changes
   useEffect(() => {
@@ -179,7 +174,6 @@ export default function PlanScreen({ navigation }: any) {
       fadeAnim.setValue(0);
     }
   }, [currentPlan, congratulationsShown, fadeAnim]);
-  const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   if (!currentPlan) {
     return (
@@ -209,13 +203,13 @@ export default function PlanScreen({ navigation }: any) {
         {/* Progress */}
         <View style={[styles.progressContainer, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.progressText, { color: theme.colors.text }]}>
-            {completedTasks} of {totalTasks} tasks completed ({progressPercentage}%)
+            {taskStats.completedTasks} of {taskStats.totalTasks} tasks completed ({taskStats.completionPercentage}%)
           </Text>
           <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
             <View 
               style={[
                 styles.progressFill, 
-                { width: `${progressPercentage}%`, backgroundColor: theme.colors.primary }
+                { width: `${taskStats.completionPercentage}%`, backgroundColor: theme.colors.primary }
               ]} 
             />
           </View>
