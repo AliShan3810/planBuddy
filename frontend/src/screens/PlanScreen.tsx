@@ -6,12 +6,12 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  FlatList,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateTaskStatus, clearCurrentPlan } from '../store/planSlice';
 import { RootState } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function PlanScreen({ navigation }: any) {
   const [filterPriority, setFilterPriority] = useState<'All' | 'High' | 'Medium' | 'Low'>('All');
@@ -45,6 +45,56 @@ export default function PlanScreen({ navigation }: any) {
       }));
     }
   };
+
+  const renderTaskItem = ({ item, index }: { item: any; index: number }) => (
+    <TouchableOpacity
+      style={[
+        styles.taskItem,
+        { 
+          backgroundColor: theme.colors.card, 
+          borderColor: theme.colors.border,
+          opacity: item.completed ? 0.7 : 1
+        }
+      ]}
+      onPress={() => handleTaskToggle(index)}
+    >
+      <View style={styles.taskContent}>
+        <View style={styles.taskHeader}>
+          <View style={styles.taskTitleContainer}>
+            <Text style={styles.taskEmoji}>{item.emoji}</Text>
+            <Text style={[
+              styles.taskTitle,
+              { color: theme.colors.text },
+              item.completed && { textDecorationLine: 'line-through', color: theme.colors.textSecondary }
+            ]}>
+              {item.title}
+            </Text>
+          </View>
+          <View style={[
+            styles.priorityBadge,
+            { backgroundColor: getPriorityColor(item.priority) }
+          ]}>
+            <Text style={[styles.priorityText, { color: '#FFFFFF' }]}>{item.priority}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.taskDetails}>
+          <Text style={[styles.dueDate, { color: theme.colors.textSecondary }]}>Due: {item.dueDate}</Text>
+          {item.notes && (
+            <Text style={[styles.taskNotes, { color: theme.colors.textSecondary }]}>{item.notes}</Text>
+          )}
+        </View>
+      </View>
+      
+      <View style={[
+        styles.checkbox,
+        { borderColor: theme.colors.border },
+        item.completed && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
+      ]}>
+        {item.completed && <Text style={[styles.checkmark, { color: theme.colors.buttonText }]}>✓</Text>}
+      </View>
+    </TouchableOpacity>
+  );
 
   const handleClearPlan = () => {
     Alert.alert(
@@ -99,12 +149,11 @@ export default function PlanScreen({ navigation }: any) {
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.planTitle, { color: theme.colors.text }]}>{currentPlan.title}</Text>
-          <ThemeToggle />
+          <Text style={[styles.planDescription, { color: theme.colors.textSecondary }]}>{currentPlan.description}</Text>
+          <Text style={[styles.timeHorizon, { color: theme.colors.textSecondary }]}>Time Horizon: {currentPlan.timeHorizon}</Text>
         </View>
-        <Text style={[styles.planDescription, { color: theme.colors.textSecondary }]}>{currentPlan.description}</Text>
-        <Text style={[styles.timeHorizon, { color: theme.colors.textSecondary }]}>Time Horizon: {currentPlan.timeHorizon}</Text>
 
         {/* Progress */}
         <View style={[styles.progressContainer, { backgroundColor: theme.colors.surface }]}>
@@ -122,7 +171,7 @@ export default function PlanScreen({ navigation }: any) {
         </View>
 
         {/* Filter Buttons */}
-        <View style={styles.filterContainer}>
+        <View style={[styles.filterContainer, { backgroundColor: theme.colors.card }]}>
           {(['All', 'High', 'Medium', 'Low'] as const).map((priority) => (
             <TouchableOpacity
               key={priority}
@@ -145,55 +194,16 @@ export default function PlanScreen({ navigation }: any) {
         </View>
 
         {/* Tasks */}
-        <View style={styles.tasksContainer}>
+        <View style={[styles.tasksContainer, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.tasksTitle, { color: theme.colors.text }]}>Tasks</Text>
-          {filteredTasks.map((task, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.taskItem,
-                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
-                task.completed && { opacity: 0.6 }
-              ]}
-              onPress={() => handleTaskToggle(index)}
-            >
-              <View style={styles.taskContent}>
-                <View style={styles.taskHeader}>
-                  <View style={styles.taskTitleContainer}>
-                    <Text style={styles.taskEmoji}>{task.emoji}</Text>
-                    <Text style={[
-                      styles.taskTitle,
-                      { color: theme.colors.text },
-                      task.completed && { textDecorationLine: 'line-through', color: theme.colors.textSecondary }
-                    ]}>
-                      {task.title}
-                    </Text>
-                  </View>
-                  <View style={[
-                    styles.priorityBadge,
-                    { backgroundColor: getPriorityColor(task.priority) }
-                  ]}>
-                    <Text style={styles.priorityText}>{task.priority}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.taskDetails}>
-                  <Text style={[styles.dueDate, { color: theme.colors.textSecondary }]}>Due: {task.dueDate}</Text>
-                  {task.notes && (
-                    <Text style={[styles.taskNotes, { color: theme.colors.textSecondary }]}>{task.notes}</Text>
-                  )}
-                </View>
-              </View>
-              
-              <View style={[
-                styles.checkbox,
-                { borderColor: theme.colors.border },
-                task.completed && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
-              ]}>
-                {task.completed && <Text style={[styles.checkmark, { color: theme.colors.buttonText }]}>✓</Text>}
-              </View>
-            </TouchableOpacity>
-          ))}
+          <FlatList
+            data={filteredTasks}
+            renderItem={renderTaskItem}
+            keyExtractor={(item, index) => item.id || index.toString()}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.tasksList}
+          />
         </View>
 
         {/* Action Buttons */}
@@ -268,13 +278,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 12,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -285,7 +292,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
-    flex: 1,
+    marginBottom: 8,
   },
   planDescription: {
     fontSize: 16,
@@ -364,6 +371,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  tasksList: {
+    paddingTop: 8,
   },
   tasksTitle: {
     fontSize: 18,

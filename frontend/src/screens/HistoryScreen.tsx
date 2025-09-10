@@ -10,7 +10,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../types';
 import { setCurrentPlan, deletePlan } from '../store/planSlice';
 import { useTheme } from '../contexts/ThemeContext';
-import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function HistoryScreen({ navigation }: any) {
   const dispatch = useDispatch();
@@ -91,11 +90,10 @@ export default function HistoryScreen({ navigation }: any) {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme.colors.text }]}>Your Plans</Text>
-          <ThemeToggle />
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
+            {plans.length} plan{plans.length !== 1 ? 's' : ''} created
+          </Text>
         </View>
-        <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          {plans.length} plan{plans.length !== 1 ? 's' : ''} created
-        </Text>
 
         {plans.map((plan) => (
           <View key={plan.id} style={[styles.planCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
@@ -123,7 +121,7 @@ export default function HistoryScreen({ navigation }: any) {
               </View>
             </View>
 
-            <View style={styles.planStats}>
+            <View style={[styles.planStats, { backgroundColor: theme.colors.surface }]}>
               <View style={styles.statItem}>
                 <Text style={[styles.statNumber, { color: theme.colors.text }]}>{plan.totalTasks}</Text>
                 <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Tasks</Text>
@@ -149,7 +147,7 @@ export default function HistoryScreen({ navigation }: any) {
               </View>
             </View>
 
-            <View style={styles.tasksPreview}>
+            <View style={[styles.tasksPreview, { borderTopColor: theme.colors.border }]}>
               <Text style={[styles.tasksPreviewTitle, { color: theme.colors.text }]}>Tasks Preview:</Text>
               {plan.tasks.slice(0, 3).map((task, index) => (
                 <View key={index} style={styles.taskPreviewItem}>
@@ -231,16 +229,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 24,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1f2937',
-    flex: 1,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,

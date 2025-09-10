@@ -64,7 +64,7 @@ const darkTheme: Theme = {
     primary: '#0A84FF',
     secondary: '#5E5CE6',
     text: '#FFFFFF',
-    textSecondary: '#8E8E93',
+    textSecondary: '#A1A1A6',
     border: '#38383A',
     error: '#FF453A',
     success: '#30D158',

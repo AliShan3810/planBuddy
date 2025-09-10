@@ -35,7 +35,7 @@ A simple 2-screen Expo app that converts goals into structured, checkable task p
 - Shows plan progress and task previews
 
 #### 4. Theme System
-- Light/Dark mode toggle on all screens
+- Light/Dark mode toggle on Create Plan screen
 - Simple two-mode theme switching
 - Persistent theme preference
 - Theme-aware colors throughout the app
