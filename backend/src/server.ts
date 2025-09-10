@@ -31,6 +31,94 @@ app.get("/health", (req: Request, res: Response) => {
   });
 });
 
+// Helper function to validate if goal is realistic for time horizon using AI
+const validateGoalForTimeHorizon = async (goal: string, timeHorizon: string, openai: OpenAI | null): Promise<{ isValid: boolean; message?: string }> => {
+  // If no OpenAI API key, use simple fallback validation
+  if (!openai) {
+    const goalLower = goal.toLowerCase();
+    
+    // Simple fallback for common unrealistic goals
+    const unrealisticKeywords = ['learn programming', 'become expert', 'master', 'get degree', 'build app', 'create website'];
+    
+    for (const keyword of unrealisticKeywords) {
+      if (goalLower.includes(keyword)) {
+        return {
+          isValid: false,
+          message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal.`
+        };
+      }
+    }
+    
+    return { isValid: true };
+  }
+
+  try {
+    const timeContext = timeHorizon === "Today" 
+      ? "within the next 24 hours (one day)" 
+      : "over the next 7 days (one week)";
+    
+    const validationPrompt = `You are a productivity expert. Analyze if the following goal is realistically achievable ${timeContext}.
+
+GOAL: "${goal}"
+TIME HORIZON: ${timeHorizon} (${timeContext})
+
+Consider:
+- Is this goal realistically achievable ${timeContext}?
+- Does it require skills that take longer to develop?
+- Is it a complex project that needs more time?
+- Can it be broken down into smaller, achievable tasks?
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "isRealistic": true/false,
+  "reason": "Brief explanation of why this goal is or isn't realistic for the time period"
+}
+
+Examples of unrealistic goals for "Today": learning a new programming language, building a complete app, becoming an expert in something
+Examples of realistic goals for "Today": organizing workspace, planning a meeting, completing a simple task
+Examples of unrealistic goals for "This Week": getting a degree, becoming a professional, mastering a complex skill
+Examples of realistic goals for "This Week": learning basics of a topic, planning an event, completing a small project`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a productivity expert who validates if goals are realistic for given time periods. Always respond with valid JSON only."
+        },
+        {
+          role: "user",
+          content: validationPrompt
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 200,
+      response_format: { type: "json_object" }
+    });
+
+    const content = completion?.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from validation API');
+    }
+
+    const validationResult = JSON.parse(content);
+    
+    if (!validationResult.isRealistic) {
+      return {
+        isValid: false,
+        message: `This goal is too complex for ${timeHorizon.toLowerCase()}. Please try a simpler goal or change the time horizon.`
+      };
+    }
+    
+    return { isValid: true };
+    
+  } catch (error) {
+    console.error('AI validation error:', error);
+    // Fallback to allowing the goal if AI validation fails
+    return { isValid: true };
+  }
+};
+
 // Helper function to create fallback tasks
 const createFallbackTasks = (goal: string, timeHorizon: string): Task[] => {
   const isToday = timeHorizon === "Today";
@@ -101,6 +189,15 @@ app.post("/plan", async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Time horizon must be either "Today" or "This Week"',
+      } as ApiResponse<null>);
+    }
+
+    // Validate if goal is realistic for the time horizon using AI
+    const validation = await validateGoalForTimeHorizon(goal, timeHorizon, openai);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.message,
       } as ApiResponse<null>);
     }
 

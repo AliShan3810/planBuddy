@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateTaskStatus, clearCurrentPlan } from '../store/planSlice';
+import { updateTaskStatus, deletePlan } from '../store/planSlice';
 import { RootState } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { filterAndSortTasks, getTaskStatistics, getPriorityColor, FilterPriority } from '../utils/taskUtils';
@@ -27,21 +27,6 @@ export default function PlanScreen({ navigation }: any) {
 
   // Animation values - simplified to just fade
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!currentPlan) {
-      Alert.alert(
-        'No Plan Found',
-        'No plan found. Let\'s create one!',
-        [
-          {
-            text: 'Create Plan',
-            onPress: () => navigation.navigate('CreatePlan'),
-          },
-        ]
-      );
-    }
-  }, [currentPlan, navigation]);
 
   const handleTaskToggle = (taskId: string) => {
     if (currentPlan) {
@@ -115,17 +100,19 @@ export default function PlanScreen({ navigation }: any) {
     </TouchableOpacity>
   );
 
-  const handleClearPlan = () => {
+  const handleDeletePlan = () => {
+    if (!currentPlan) return;
+    
     Alert.alert(
-      'Clear Plan',
-      'Are you sure you want to clear this plan?',
+      'Delete Plan',
+      'Are you sure you want to delete this plan? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            dispatch(clearCurrentPlan());
+            dispatch(deletePlan(currentPlan.id));
             navigation.navigate('CreatePlan');
           },
         },
@@ -261,10 +248,10 @@ export default function PlanScreen({ navigation }: any) {
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
-            onPress={handleClearPlan}
+            style={[styles.deleteButton, { backgroundColor: theme.colors.error }]}
+            onPress={handleDeletePlan}
           >
-            <Text style={[styles.clearButtonText, { color: theme.colors.buttonText }]}>Clear Plan</Text>
+            <Text style={[styles.deleteButtonText, { color: theme.colors.buttonText }]}>Delete Plan</Text>
           </TouchableOpacity>
         </View>
 
@@ -557,7 +544,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  clearButton: {
+  deleteButton: {
     flex: 1,
     backgroundColor: '#ffffff',
     borderWidth: 2,
@@ -567,7 +554,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 8,
   },
-  clearButtonText: {
+  deleteButtonText: {
     color: '#ef4444',
     fontSize: 16,
     fontWeight: '600',

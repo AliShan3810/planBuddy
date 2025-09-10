@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import apiService from '../services/apiService';
-import { Plan, PlanState, Task } from '../types';
+import { Plan, PlanState } from '../types';
 
 const initialState: PlanState = {
   currentPlan: null,
@@ -104,7 +104,8 @@ const planSlice = createSlice({
       })
       .addCase(generatePlanFromGoal.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message || 'Failed to generate plan';
+        // The error message from the backend API is in action.payload
+        state.error = (action.payload as string) || action.error?.message || 'Failed to generate plan';
       })
       .addCase(checkApiHealth.fulfilled, (state, action) => {
         state.apiConnected = action.payload.hasApiKey;

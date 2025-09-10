@@ -26,7 +26,18 @@ export default function CreatePlanScreen({ navigation }: any) {
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Error', error);
+      // Check if it's a validation error and show generic message
+      const isValidationError = error.includes('too complex') || error.includes('simpler goal');
+      
+      if (isValidationError) {
+        Alert.alert(
+          'Goal Not Suitable', 
+          'This goal is not suitable for the selected time period. Please try a simpler goal or change the time horizon.'
+        );
+      } else {
+        Alert.alert('Error', 'Something went wrong. Please try again.');
+      }
+      
       dispatch(clearError());
     }
   }, [error, dispatch]);
@@ -83,7 +94,8 @@ export default function CreatePlanScreen({ navigation }: any) {
         
         navigation.navigate('Plan');
       } else if (result.type === 'plan/generatePlanFromGoal/rejected') {
-        Alert.alert('Error', 'Failed to generate plan. Please try again.');
+        // The error message will be handled by the useEffect that watches the error state
+        // This ensures we show the proper backend validation message
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to generate plan. Please try again.');

@@ -9,6 +9,7 @@ A simple 2-screen Expo app that converts goals into structured, checkable task p
 - **GET /health** - Health check endpoint
 - Returns tasks with title, dueDate, priority, notes, and emoji
 - Works with or without OpenAI API key (uses mock data if no key)
+- **AI-Powered Goal Validation** - Uses OpenAI to intelligently validate if goals are realistic for the selected time horizon
 
 ### Frontend (3 Screens)
 
@@ -19,6 +20,7 @@ A simple 2-screen Expo app that converts goals into structured, checkable task p
 - Input validation with real-time feedback
 - ScrollView support for small devices
 - "View Previous Plans" navigation
+- **Smart Error Handling**: Displays backend validation errors with helpful messages
 
 #### 2. Plan Screen
 - Renders returned tasks with title, dueDate, priority, notes, emoji
@@ -187,6 +189,40 @@ POST /plan
 }
 ```
 
+### AI-Powered Goal Validation
+
+The API uses OpenAI to intelligently validate if goals are realistic for the selected time horizon. The AI analyzes the goal's complexity, required skills, and time requirements to make accurate assessments:
+
+#### AI Validation Examples
+
+**Realistic Goals (AI allows):**
+- "Organize my workspace" + "Today" → ✅ Realistic
+- "Plan a birthday party" + "Today" → ✅ Realistic  
+- "Learn the basics of cooking" + "This Week" → ✅ Realistic
+
+**Unrealistic Goals (AI blocks):**
+- "Learn React Native programming" + "Today" → ❌ Too complex
+- "Become a professional chef" + "This Week" → ❌ Too complex
+- "Master machine learning" + "This Week" → ❌ Too complex
+
+**AI Intelligence:**
+The AI can distinguish nuanced differences:
+- "Learn the basics of cooking" (realistic for one week) vs "Become a professional chef" (unrealistic)
+- "Plan a birthday party" (realistic for one day) vs "Organize a wedding" (unrealistic)
+
+#### Validation Response
+```json
+{
+  "success": false,
+  "message": "This goal is too complex for one day. Please try a simpler goal or change the time horizon to \"This Week\"."
+}
+```
+
+#### Frontend Error Display
+The frontend shows user-friendly error messages:
+- **Validation Error**: "This goal is not suitable for the selected time period. Please try a simpler goal or change the time horizon."
+- **General Error**: "Something went wrong. Please try again."
+
 ## Tech Stack
 
 - **Frontend**: Expo, React Native, TypeScript, Redux Toolkit, Redux Persist
@@ -257,6 +293,12 @@ POST /plan
 - **Current**: Jest testing with 25 comprehensive tests
 - **Why**: User requested testing for task filtering/sorting functionality
 - **Time Tradeoff**: +2 hours for robust testing infrastructure
+
+#### 11. **AI-Powered Goal Validation System**
+- **Original**: No validation for goal feasibility
+- **Current**: OpenAI-powered validation that intelligently analyzes goal complexity and time requirements
+- **Why**: User requested accurate validation that can handle nuanced cases and edge scenarios
+- **Time Tradeoff**: +2 hours for AI integration, prompt engineering, and fallback validation
 
 ## State Management & Persistence
 
@@ -348,3 +390,4 @@ This is a straightforward implementation focused on the core functionality:
 - Performance-optimized FlatList rendering
 - Animated congratulations modal
 - Comprehensive Jest testing suite
+- AI-powered goal validation for intelligent planning
