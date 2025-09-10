@@ -1,5 +1,7 @@
+import { Platform } from "react-native";
+
 // Simple API service for the proxy
-const API_BASE_URL = 'http://localhost:3001';
+const EXPO_PUBLIC_API_BASE_URL = Platform.OS === 'ios' ? 'http://localhost:8787' : 'http://10.0.2.2:8787';
 
 interface Task {
   title: string;
@@ -24,7 +26,7 @@ interface ApiResponse<T> {
 
 class ApiService {
   async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${EXPO_PUBLIC_API_BASE_URL}${endpoint}`;
     const config = {
       headers: {
         'Content-Type': 'application/json',

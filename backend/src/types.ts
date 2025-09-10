@@ -1,15 +1,19 @@
 // Simple types for the proxy
+export type Priority = 'High' | 'Medium' | 'Low';
+
 export interface GeneratePlanRequest {
   goal: string;
   timeHorizon: 'Today' | 'This Week';
 }
 
 export interface Task {
+  id: string;
   title: string;
-  dueDate: string;
-  priority: 'High' | 'Medium' | 'Low';
+  dueDate: string;   // YYYY-MM-DD
+  priority: Priority;
   notes?: string;
   emoji?: string;
+  completed?: boolean;
 }
 
 export interface StructuredPlan {

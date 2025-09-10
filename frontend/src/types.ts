@@ -1,12 +1,14 @@
 // Simple types for the frontend
+export type Priority = 'High' | 'Medium' | 'Low';
+
 export interface Task {
   id: string;
   title: string;
-  dueDate: string;
-  priority: 'High' | 'Medium' | 'Low';
+  dueDate: string;   // YYYY-MM-DD
+  priority: Priority;
   notes?: string;
   emoji?: string;
-  completed: boolean;
+  completed?: boolean;
 }
 
 export interface Plan {
@@ -30,4 +32,7 @@ export interface PlanState {
 
 export interface RootState {
   plan: PlanState;
+  theme: {
+    themeMode: 'light' | 'dark';
+  };
 }

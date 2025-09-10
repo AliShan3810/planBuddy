@@ -33,6 +33,8 @@ const planSlice = createSlice({
   reducers: {
     updateTaskStatus: (state, action) => {
       const { taskId, completed } = action.payload;
+      
+      // Update current plan
       if (state.currentPlan) {
         const task = state.currentPlan.tasks.find(t => t.id === taskId);
         if (task) {
@@ -40,12 +42,35 @@ const planSlice = createSlice({
           state.currentPlan.completedTasks = state.currentPlan.tasks.filter(t => t.completed).length;
         }
       }
+      
+      // Update the same task in the plans array to maintain persistence
+      state.plans.forEach(plan => {
+        const task = plan.tasks.find(t => t.id === taskId);
+        if (task) {
+          task.completed = completed;
+          plan.completedTasks = plan.tasks.filter(t => t.completed).length;
+        }
+      });
+    },
+    setCurrentPlan: (state, action) => {
+      state.currentPlan = action.payload;
     },
     clearCurrentPlan: (state) => {
       state.currentPlan = null;
     },
+    deletePlan: (state, action) => {
+      const planId = action.payload;
+      state.plans = state.plans.filter(plan => plan.id !== planId);
+      if (state.currentPlan?.id === planId) {
+        state.currentPlan = null;
+      }
+    },
     clearError: (state) => {
       state.error = null;
+    },
+    // Debug action to check persistence
+    debugState: (state) => {
+      console.log('Current Redux State:', JSON.stringify(state, null, 2));
     },
   },
   extraReducers: (builder) => {
@@ -87,5 +112,5 @@ const planSlice = createSlice({
   },
 });
 
-export const { updateTaskStatus, clearCurrentPlan, clearError } = planSlice.actions;
+export const { updateTaskStatus, setCurrentPlan, clearCurrentPlan, deletePlan, clearError, debugState } = planSlice.actions;
 export default planSlice.reducer;

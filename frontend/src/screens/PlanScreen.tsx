@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,15 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { updateTaskStatus, clearCurrentPlan } from '../store/planSlice';
 import { RootState } from '../types';
+import { useTheme } from '../contexts/ThemeContext';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function PlanScreen({ navigation }: any) {
   const [filterPriority, setFilterPriority] = useState<'All' | 'High' | 'Medium' | 'Low'>('All');
   
   const dispatch = useDispatch();
   const { currentPlan } = useSelector((state: RootState) => state.plan);
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!currentPlan) {
@@ -33,16 +36,12 @@ export default function PlanScreen({ navigation }: any) {
   }, [currentPlan, navigation]);
 
   const handleTaskToggle = (taskIndex: number) => {
-    if (currentPlan) {
-      const updatedTasks = [...currentPlan.tasks];
-      updatedTasks[taskIndex] = {
-        ...updatedTasks[taskIndex],
-        completed: !updatedTasks[taskIndex].completed
-      };
+    if (currentPlan && currentPlan.tasks[taskIndex]) {
+      const task = currentPlan.tasks[taskIndex];
       
       dispatch(updateTaskStatus({
-        taskId: updatedTasks[taskIndex].id,
-        completed: updatedTasks[taskIndex].completed
+        taskId: task.id,
+        completed: !task.completed
       }));
     }
   };
@@ -84,38 +83,39 @@ export default function PlanScreen({ navigation }: any) {
 
   if (!currentPlan) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No plan found</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.emptyText, { color: theme.colors.text }]}>No plan found</Text>
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, { backgroundColor: theme.colors.buttonPrimary }]}
           onPress={() => navigation.navigate('CreatePlan')}
         >
-          <Text style={styles.createButtonText}>Create New Plan</Text>
+          <Text style={[styles.createButtonText, { color: theme.colors.buttonText }]}>Create New Plan</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.planTitle}>{currentPlan.title}</Text>
-          <Text style={styles.planDescription}>{currentPlan.description}</Text>
-          <Text style={styles.timeHorizon}>Time Horizon: {currentPlan.timeHorizon}</Text>
+          <Text style={[styles.planTitle, { color: theme.colors.text }]}>{currentPlan.title}</Text>
+          <ThemeToggle />
         </View>
+        <Text style={[styles.planDescription, { color: theme.colors.textSecondary }]}>{currentPlan.description}</Text>
+        <Text style={[styles.timeHorizon, { color: theme.colors.textSecondary }]}>Time Horizon: {currentPlan.timeHorizon}</Text>
 
         {/* Progress */}
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>
+        <View style={[styles.progressContainer, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.progressText, { color: theme.colors.text }]}>
             {completedTasks} of {totalTasks} tasks completed ({progressPercentage}%)
           </Text>
-          <View style={styles.progressBar}>
+          <View style={[styles.progressBar, { backgroundColor: theme.colors.border }]}>
             <View 
               style={[
                 styles.progressFill, 
-                { width: `${progressPercentage}%` }
+                { width: `${progressPercentage}%`, backgroundColor: theme.colors.primary }
               ]} 
             />
           </View>
@@ -128,13 +128,15 @@ export default function PlanScreen({ navigation }: any) {
               key={priority}
               style={[
                 styles.filterButton,
-                filterPriority === priority && styles.filterButtonSelected
+                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+                filterPriority === priority && { backgroundColor: theme.colors.primary }
               ]}
               onPress={() => setFilterPriority(priority)}
             >
               <Text style={[
                 styles.filterText,
-                filterPriority === priority && styles.filterTextSelected
+                { color: theme.colors.text },
+                filterPriority === priority && { color: theme.colors.buttonText }
               ]}>
                 {priority}
               </Text>
@@ -144,46 +146,51 @@ export default function PlanScreen({ navigation }: any) {
 
         {/* Tasks */}
         <View style={styles.tasksContainer}>
-          <Text style={styles.tasksTitle}>Tasks</Text>
+          <Text style={[styles.tasksTitle, { color: theme.colors.text }]}>Tasks</Text>
           {filteredTasks.map((task, index) => (
             <TouchableOpacity
               key={index}
               style={[
                 styles.taskItem,
-                task.completed && styles.taskItemCompleted
+                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                task.completed && { opacity: 0.6 }
               ]}
               onPress={() => handleTaskToggle(index)}
             >
-              <View style={styles.taskHeader}>
-                <View style={styles.taskTitleContainer}>
-                  <Text style={styles.taskEmoji}>{task.emoji}</Text>
-                  <Text style={[
-                    styles.taskTitle,
-                    task.completed && styles.taskTitleCompleted
+              <View style={styles.taskContent}>
+                <View style={styles.taskHeader}>
+                  <View style={styles.taskTitleContainer}>
+                    <Text style={styles.taskEmoji}>{task.emoji}</Text>
+                    <Text style={[
+                      styles.taskTitle,
+                      { color: theme.colors.text },
+                      task.completed && { textDecorationLine: 'line-through', color: theme.colors.textSecondary }
+                    ]}>
+                      {task.title}
+                    </Text>
+                  </View>
+                  <View style={[
+                    styles.priorityBadge,
+                    { backgroundColor: getPriorityColor(task.priority) }
                   ]}>
-                    {task.title}
-                  </Text>
+                    <Text style={styles.priorityText}>{task.priority}</Text>
+                  </View>
                 </View>
-                <View style={[
-                  styles.priorityBadge,
-                  { backgroundColor: getPriorityColor(task.priority) }
-                ]}>
-                  <Text style={styles.priorityText}>{task.priority}</Text>
+                
+                <View style={styles.taskDetails}>
+                  <Text style={[styles.dueDate, { color: theme.colors.textSecondary }]}>Due: {task.dueDate}</Text>
+                  {task.notes && (
+                    <Text style={[styles.taskNotes, { color: theme.colors.textSecondary }]}>{task.notes}</Text>
+                  )}
                 </View>
-              </View>
-              
-              <View style={styles.taskDetails}>
-                <Text style={styles.dueDate}>Due: {task.dueDate}</Text>
-                {task.notes && (
-                  <Text style={styles.taskNotes}>{task.notes}</Text>
-                )}
               </View>
               
               <View style={[
                 styles.checkbox,
-                task.completed && styles.checkboxCompleted
+                { borderColor: theme.colors.border },
+                task.completed && { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }
               ]}>
-                {task.completed && <Text style={styles.checkmark}>✓</Text>}
+                {task.completed && <Text style={[styles.checkmark, { color: theme.colors.buttonText }]}>✓</Text>}
               </View>
             </TouchableOpacity>
           ))}
@@ -192,26 +199,34 @@ export default function PlanScreen({ navigation }: any) {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <TouchableOpacity
-            style={styles.editButton}
+            style={[styles.editButton, { backgroundColor: theme.colors.buttonPrimary }]}
             onPress={() => navigation.navigate('CreatePlan')}
           >
-            <Text style={styles.editButtonText}>Create New Plan</Text>
+            <Text style={[styles.editButtonText, { color: theme.colors.buttonText }]}>Create New Plan</Text>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={styles.clearButton}
+            style={[styles.clearButton, { backgroundColor: theme.colors.error }]}
             onPress={handleClearPlan}
           >
-            <Text style={styles.clearButtonText}>Clear Plan</Text>
+            <Text style={[styles.clearButtonText, { color: theme.colors.buttonText }]}>Clear Plan</Text>
           </TouchableOpacity>
         </View>
 
+        {/* View History Button */}
+        <TouchableOpacity
+          style={[styles.historyButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+          onPress={() => navigation.navigate('History')}
+        >
+          <Text style={[styles.historyButtonText, { color: theme.colors.text }]}>📋 View All Plans</Text>
+        </TouchableOpacity>
+
         {/* Completion Message */}
         {completedTasks === totalTasks && totalTasks > 0 && (
-          <View style={styles.completionContainer}>
+          <View style={[styles.completionContainer, { backgroundColor: theme.colors.success }]}>
             <Text style={styles.completionEmoji}>🎉</Text>
-            <Text style={styles.completionTitle}>Congratulations!</Text>
-            <Text style={styles.completionText}>
+            <Text style={[styles.completionTitle, { color: theme.colors.buttonText }]}>Congratulations!</Text>
+            <Text style={[styles.completionText, { color: theme.colors.buttonText }]}>
               You've completed all tasks in your plan!
             </Text>
           </View>
@@ -253,10 +268,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -267,7 +285,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
-    marginBottom: 8,
+    flex: 1,
   },
   planDescription: {
     fontSize: 16,
@@ -357,7 +375,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
     paddingVertical: 16,
-    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  taskContent: {
+    flex: 1,
+    marginRight: 12,
   },
   taskItemCompleted: {
     opacity: 0.6,
@@ -400,6 +423,7 @@ const styles = StyleSheet.create({
   },
   taskDetails: {
     marginLeft: 28,
+    marginTop: 8,
   },
   dueDate: {
     fontSize: 14,
@@ -412,9 +436,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   checkbox: {
-    position: 'absolute',
-    right: 0,
-    top: 16,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -487,5 +508,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#059669',
     textAlign: 'center',
+  },
+  historyButton: {
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  historyButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
