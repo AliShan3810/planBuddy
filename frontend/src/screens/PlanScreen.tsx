@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ScrollView,
   Alert,
   FlatList,
+  Animated,
+  Modal,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateTaskStatus, clearCurrentPlan } from '../store/planSlice';
@@ -15,10 +17,15 @@ import { useTheme } from '../contexts/ThemeContext';
 
 export default function PlanScreen({ navigation }: any) {
   const [filterPriority, setFilterPriority] = useState<'All' | 'High' | 'Medium' | 'Low'>('All');
+  const [showCongratulations, setShowCongratulations] = useState(false);
+  const [congratulationsShown, setCongratulationsShown] = useState<string | null>(null);
   
   const dispatch = useDispatch();
   const { currentPlan } = useSelector((state: RootState) => state.plan);
   const { theme } = useTheme();
+
+  // Animation values - simplified to just fade
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!currentPlan) {
@@ -35,18 +42,29 @@ export default function PlanScreen({ navigation }: any) {
     }
   }, [currentPlan, navigation]);
 
-  const handleTaskToggle = (taskIndex: number) => {
-    if (currentPlan && currentPlan.tasks[taskIndex]) {
-      const task = currentPlan.tasks[taskIndex];
-      
-      dispatch(updateTaskStatus({
-        taskId: task.id,
-        completed: !task.completed
-      }));
+  const handleTaskToggle = (taskId: string) => {
+    if (currentPlan) {
+      const task = currentPlan.tasks.find(t => t.id === taskId);
+      if (task) {
+        dispatch(updateTaskStatus({
+          taskId: task.id,
+          completed: !task.completed
+        }));
+      }
     }
   };
 
-  const renderTaskItem = ({ item, index }: { item: any; index: number }) => (
+  const handleCloseCongratulations = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowCongratulations(false);
+    });
+  };
+
+  const renderTaskItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[
         styles.taskItem,
@@ -56,7 +74,7 @@ export default function PlanScreen({ navigation }: any) {
           opacity: item.completed ? 0.7 : 1
         }
       ]}
-      onPress={() => handleTaskToggle(index)}
+      onPress={() => handleTaskToggle(item.id)}
     >
       <View style={styles.taskContent}>
         <View style={styles.taskHeader}>
@@ -129,6 +147,38 @@ export default function PlanScreen({ navigation }: any) {
 
   const completedTasks = currentPlan?.tasks.filter(task => task.completed).length || 0;
   const totalTasks = currentPlan?.tasks.length || 0;
+
+  // Check if all tasks are completed and show congratulations
+  useEffect(() => {
+    if (totalTasks > 0 && completedTasks === totalTasks && currentPlan) {
+      // Show congratulations if not already shown for this completion
+      if (congratulationsShown !== currentPlan.id) {
+        setShowCongratulations(true);
+        setCongratulationsShown(currentPlan.id);
+        
+        // Simple fade in animation
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }).start();
+      }
+    } else if (totalTasks > 0 && completedTasks < totalTasks && currentPlan && congratulationsShown === currentPlan.id) {
+      // Reset congratulations state when tasks are unchecked
+      setCongratulationsShown(null);
+      setShowCongratulations(false);
+      fadeAnim.setValue(0);
+    }
+  }, [completedTasks, totalTasks, currentPlan, congratulationsShown, fadeAnim]);
+
+  // Reset congratulations state when plan changes
+  useEffect(() => {
+    if (currentPlan && congratulationsShown && congratulationsShown !== currentPlan.id) {
+      setCongratulationsShown(null);
+      setShowCongratulations(false);
+      fadeAnim.setValue(0);
+    }
+  }, [currentPlan, congratulationsShown, fadeAnim]);
   const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   if (!currentPlan) {
@@ -146,8 +196,9 @@ export default function PlanScreen({ navigation }: any) {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={styles.content}>
+    <>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={styles.content}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.colors.card }]}>
           <Text style={[styles.planTitle, { color: theme.colors.text }]}>{currentPlan.title}</Text>
@@ -231,18 +282,49 @@ export default function PlanScreen({ navigation }: any) {
           <Text style={[styles.historyButtonText, { color: theme.colors.text }]}>📋 View All Plans</Text>
         </TouchableOpacity>
 
-        {/* Completion Message */}
-        {completedTasks === totalTasks && totalTasks > 0 && (
-          <View style={[styles.completionContainer, { backgroundColor: theme.colors.success }]}>
-            <Text style={styles.completionEmoji}>🎉</Text>
-            <Text style={[styles.completionTitle, { color: theme.colors.buttonText }]}>Congratulations!</Text>
-            <Text style={[styles.completionText, { color: theme.colors.buttonText }]}>
-              You've completed all tasks in your plan!
-            </Text>
-          </View>
-        )}
       </View>
     </ScrollView>
+
+    {/* Animated Congratulations Modal */}
+    <Modal
+      visible={showCongratulations}
+      transparent={true}
+      animationType="none"
+      onRequestClose={handleCloseCongratulations}
+    >
+      <View style={styles.modalOverlay}>
+        <Animated.View
+          style={[
+            styles.congratulationsModal,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+              opacity: fadeAnim,
+            },
+          ]}
+        >
+          {/* Close Button */}
+          <TouchableOpacity
+            style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
+            onPress={handleCloseCongratulations}
+          >
+            <Text style={[styles.closeButtonText, { color: theme.colors.text }]}>✕</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.congratulationsEmoji}>🎉</Text>
+          <Text style={[styles.congratulationsTitle, { color: theme.colors.text }]}>
+            Congratulations!
+          </Text>
+          <Text style={[styles.congratulationsSubtitle, { color: theme.colors.textSecondary }]}>
+            You've completed all tasks!
+          </Text>
+          <Text style={[styles.congratulationsMessage, { color: theme.colors.textSecondary }]}>
+            Great job on finishing your plan! 🚀
+          </Text>
+        </Animated.View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -532,5 +614,68 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Congratulations Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  congratulationsModal: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  congratulationsEmoji: {
+    fontSize: 80,
+    marginBottom: 20,
+  },
+  congratulationsTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  congratulationsSubtitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  congratulationsMessage: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
